@@ -188,6 +188,7 @@ Unit::Unit()
 
     m_CombatTimer = 0;
     m_lastManaUseTimer = 0;
+    m_lastManaUseSpellId = 0;
 
     //m_victimThreat = 0.0f;
     for (int i = 0; i < MAX_SPELL_SCHOOL; ++i)
@@ -291,7 +292,14 @@ void Unit::Update(uint32 update_diff, uint32 p_time)
     if (m_lastManaUseTimer)
     {
         if (update_diff >= m_lastManaUseTimer)
-            m_lastManaUseTimer = 0;
+        {
+            // Do not regen mana if still channeling last spell that took mana.
+            if (!m_currentSpells[CURRENT_CHANNELED_SPELL] || (m_currentSpells[CURRENT_CHANNELED_SPELL]->m_spellInfo->Id != m_lastManaUseSpellId))
+            {
+                m_lastManaUseTimer = 0;
+                m_lastManaUseSpellId = 0;
+            }
+        }
         else
             m_lastManaUseTimer -= update_diff;
     }
@@ -871,7 +879,7 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
         duel_hasEnded = true;
     }
     //Get in CombatState
-    if ((pVictim != this) && (damagetype != DOT || (spellProto && !spellProto->IsSpellAppliesPeriodicAura())) &&
+    if ((pVictim != this) && (damagetype != DOT || (spellProto && spellProto->HasEffect(SPELL_EFFECT_PERSISTENT_AREA_AURA))) &&
        (!spellProto || !spellProto->HasAura(SPELL_AURA_DAMAGE_SHIELD)))
     {
         SetInCombatWithVictim(pVictim);
@@ -12083,11 +12091,7 @@ void Unit::DisableSpline()
 {
     if (Player* me = ToPlayer())
         me->SetFallInformation(0, me->GetPositionZ());
-#if SUPPORTED_CLIENT_BUILD > CLIENT_BUILD_1_7_1
     m_movementInfo.RemoveMovementFlag(MOVEFLAG_SPLINE_ENABLED | MOVEFLAG_FORWARD);
-#else
-    m_movementInfo.RemoveMovementFlag(MOVEFLAG_FORWARD);
-#endif
     movespline->_Interrupt();
 }
 
