@@ -1656,6 +1656,9 @@ void Spell::DoSpellHitOnUnit(Unit *unit, uint32 effectMask)
                 return;
             }
 
+            // World of Warcraft Client Patch (2004-11-07)
+            // - Healing and buffing NPCs will not flag you for PvP unless those 
+            //   NPCs are in combat.
             if (unit->isInCombat())
             {
                 if (!(m_spellInfo->AttributesEx3 & SPELL_ATTR_EX3_NO_INITIAL_AGGRO))
@@ -1664,7 +1667,7 @@ void Spell::DoSpellHitOnUnit(Unit *unit, uint32 effectMask)
                     unit->getHostileRefManager().threatAssist(realCaster, 0.0f, m_spellInfo);
                 }
             }
-            else if (unit->IsPvP())
+            else if (unit->IsPvP() && unit->IsPlayer())
             {
                 if (Player* pPlayer = realCaster->GetCharmerOrOwnerPlayerOrPlayerItself())
                     pPlayer->UpdatePvP(true);
@@ -3999,7 +4002,24 @@ void Spell::update(uint32 difftime)
     {
         // always cancel for channeled spells
         if (m_spellState == SPELL_STATE_CASTING)
-            cancel();
+        {
+            bool bInterrupt = true;
+
+            // except if its a self root, since player could have moved a bit before root ack (ravager proc)
+            for (int i = 0; i < MAX_EFFECT_INDEX; ++i)
+            {
+                if ((m_spellInfo->Effect[i] == SPELL_EFFECT_APPLY_AURA) &&
+                    ((m_spellInfo->EffectApplyAuraName[i] == SPELL_AURA_MOD_ROOT) || (m_spellInfo->EffectApplyAuraName[i] == SPELL_AURA_MOD_STUN)) &&
+                    (m_spellInfo->EffectImplicitTargetA[i] == TARGET_SELF))
+                {
+                    bInterrupt = !(m_caster->IsRooted() || m_caster->HasPendingMovementChange(ROOT));
+                    break;
+                }
+            }
+
+            if (bInterrupt)
+                cancel();
+        }
         // don't cancel for melee, autorepeat, triggered and instant spells
         else if (!IsNextMeleeSwingSpell() && !IsAutoRepeat() && !m_IsTriggeredSpell && (m_spellInfo->InterruptFlags & SPELL_INTERRUPT_FLAG_MOVEMENT))
             cancel();
@@ -6247,9 +6267,11 @@ SpellCastResult Spell::CheckCast(bool strict)
                     if (!go->IsUseRequirementMet())
                         return SPELL_FAILED_TRY_AGAIN;
 
+#if SUPPORTED_CLIENT_BUILD > CLIENT_BUILD_1_7_1
                     // Prevent looting chests while totally immune
                     if (go->GetGoType() == GAMEOBJECT_TYPE_CHEST && m_caster->ToPlayer()->IsTotalImmune())
                         return SPELL_FAILED_DAMAGE_IMMUNE;
+#endif
                 }
                 else if (Item* item = m_targets.getItemTarget())
                 {

@@ -5110,82 +5110,6 @@ float Player::GetSpellCritFromIntellect() const
     return crit_chance;
 }
 
-float Player::GetRegenHPPerSpirit() const
-{
-    float regen = 0.0f;
-
-    float Spirit = GetStat(STAT_SPIRIT);
-    uint8 Class = getClass();
-
-    switch (Class)
-    {
-        case CLASS_DRUID:
-            regen = (Spirit * 0.11 + 1);
-            break;
-        case CLASS_HUNTER:
-            regen = (Spirit * 0.43 - 5.5);
-            break;
-        case CLASS_MAGE:
-            regen = (Spirit * 0.11 + 1);
-            break;
-        case CLASS_PALADIN:
-            regen = (Spirit * 0.25);
-            break;
-        case CLASS_PRIEST:
-            regen = (Spirit * 0.15 + 1.4);
-            break;
-        case CLASS_ROGUE:
-            regen = (Spirit * 0.84 - 13);
-            break;
-        case CLASS_SHAMAN:
-            regen = (Spirit * 0.28 - 3.6);
-            break;
-        case CLASS_WARLOCK:
-            regen = (Spirit * 0.12 + 1.5);
-            break;
-        case CLASS_WARRIOR:
-            regen = (Spirit * 1.26 - 22.6);
-            break;
-    }
-
-    return regen;
-}
-
-float Player::GetRegenMPPerSpirit() const
-{
-    float addvalue = 0.0;
-
-    float Spirit = GetStat(STAT_SPIRIT);
-    uint8 Class = getClass();
-
-    switch (Class)
-    {
-        case CLASS_DRUID:
-            addvalue = (Spirit / 5 + 15);
-            break;
-        case CLASS_HUNTER:
-            addvalue = (Spirit / 5 + 15);
-            break;
-        case CLASS_MAGE:
-            addvalue = (Spirit / 4 + 12.5);
-            break;
-        case CLASS_PALADIN:
-            addvalue = (Spirit / 5 + 15);
-            break;
-        case CLASS_PRIEST:
-            addvalue = (Spirit / 4 + 12.5);
-            break;
-        case CLASS_SHAMAN:
-            addvalue = (Spirit / 5 + 17);
-            break;
-        case CLASS_WARLOCK:
-            addvalue = (Spirit / 5 + 15);
-            break;
-    }
-
-    return addvalue;
-}
-
 void Player::SetRegularAttackTime(bool resetTimer)
 {
     for (int i = 0; i < MAX_ATTACK; ++i)
@@ -8796,7 +8720,7 @@ InventoryResult Player::_CanStoreItem_InSpecificSlot(uint8 bag, uint8 slot, Item
     // Fix dupe exploit (move non empty bag)
     if (pSrcItem && pSrcItem->IsBag() && !((Bag*)pSrcItem)->IsEmpty())
     {
-        GetSession()->ProcessAnticheatAction("PassiveAnticheat", "_CanStoreItem_InSpecificSlot: moving non empty bag", CHEAT_ACTION_LOG | CHEAT_ACTION_REPORT_GMS);
+        GetSession()->ProcessAnticheatAction("PassiveAnticheat", "_CanStoreItem_InSpecificSlot: moving non empty bag", CHEAT_ACTION_LOG);
         return EQUIP_ERR_CAN_ONLY_DO_WITH_EMPTY_BAGS;
     }
 
@@ -12149,14 +12073,6 @@ void Player::OnGossipSelect(WorldObject* pSource, uint32 gossipListId)
                 TalkedToCreature(pSource->GetEntry(), pSource->GetObjectGuid());
             }
 
-            if (pMenuData.m_gAction_script)
-            {
-                if (pSource->GetTypeId() == TYPEID_GAMEOBJECT)
-                    GetMap()->ScriptsStart(sGossipScripts, pMenuData.m_gAction_script, this, pSource);
-                else if (pSource->GetTypeId() == TYPEID_UNIT)
-                    GetMap()->ScriptsStart(sGossipScripts, pMenuData.m_gAction_script, pSource, this);
-            }
-
             break;
         }
         case GOSSIP_OPTION_SPIRITHEALER:
@@ -12223,6 +12139,14 @@ void Player::OnGossipSelect(WorldObject* pSource, uint32 gossipListId)
             GetSession()->SendBattlegGroundList(guid, bgTypeId);
             break;
         }
+    }
+
+    if (pMenuData.m_gAction_script)
+    {
+        if (pSource->GetTypeId() == TYPEID_GAMEOBJECT)
+            GetMap()->ScriptsStart(sGossipScripts, pMenuData.m_gAction_script, this, pSource);
+        else if (pSource->GetTypeId() == TYPEID_UNIT)
+            GetMap()->ScriptsStart(sGossipScripts, pMenuData.m_gAction_script, pSource, this);
     }
 }
 

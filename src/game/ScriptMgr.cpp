@@ -29,6 +29,7 @@
 #include "ScriptLoader.h"
 #include "Conditions.h"
 #include "GameEventMgr.h"
+#include "CreatureGroups.h"
 
 typedef std::vector<Script*> ScriptVector;
 int num_sc_scripts;
@@ -1192,6 +1193,26 @@ void ScriptMgr::LoadScripts(ScriptMapMap& scripts, const char* tablename)
                     }
                     else
                         DisableScriptAction(tmp);
+                }
+                break;
+            }
+            case SCRIPT_COMMAND_JOIN_CREATURE_GROUP:
+            {
+                if (tmp.joinCreatureGroup.options & ~ALL_CREATURE_GROUP_OPTIONS)
+                {
+                    sLog.outErrorDb("Table `%s` using unknown option in datalong (%u) in SCRIPT_COMMAND_JOIN_CREATURE_GROUP for script id %u",
+                        tablename, tmp.joinCreatureGroup.options, tmp.id);
+                    continue;
+                }
+                break;
+            }
+            case SCRIPT_COMMAND_SET_GO_STATE:
+            {
+                if (tmp.setGoState.state > GO_STATE_ACTIVE_ALTERNATIVE)
+                {
+                    sLog.outErrorDb("Table `%s` using invalid go state in datalong (%u) in SCRIPT_COMMAND_SET_GO_STATE for script id %u",
+                        tablename, tmp.setGoState.state, tmp.id);
+                    continue;
                 }
                 break;
             }
